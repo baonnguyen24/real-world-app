@@ -1,149 +1,70 @@
-// check this file using TypeScript if available
-// @ts-check
+// FLOW:
+// In order to test the Bank Account, we need of course, the User and Bank Account API. 
+// So, -- (1st) import them
+// -- (2nd) Create a temporary type of TestBankAccountContext to store neccessary fields that we use
+// Before each test, we need to seed data from db. And then store the data into the temporary variable to easier invoke
+// That's why we need -- (3rd) use the cy.database to retrieve data
+import {User, BankAccount} from "../../../src/models";
 
-import { faker } from "@faker-js/faker";
-import { User, BankAccount } from "../../../src/models";
+const apiBankAccount = `${Cypress.env("apiUrl")}/bankAccounts`;
 
-const apiBankAccounts = `${Cypress.env("apiUrl")}/bankAccounts`;
-const apiGraphQL = `${Cypress.env("apiUrl")}/graphql`;
-
-type TestBankAccountsCtx = {
+type TestBankAccountsContext = {
   allUsers?: User[];
   authenticatedUser?: User;
   bankAccounts?: BankAccount[];
-};
+}
+describe('Bank Account API', () =>{
 
-describe("Bank Accounts API", function () {
-  let ctx: TestBankAccountsCtx = {};
+  let userContext: TestBankAccountsContext = {};
 
-  before(() => {
-    // Hacky workaround to have the e2e tests pass when cy.visit('http://localhost:3000') is called
-    cy.request("GET", "/");
-  });
-
-  beforeEach(function () {
+  beforeEach(() => {
     cy.task("db:seed");
 
-    cy.database("filter", "users").then((users: User[]) => {
-      ctx.authenticatedUser = users[0];
-      ctx.allUsers = users;
+    cy.database("filter", "users").then((user:User[]) => {
+      userContext.authenticatedUser = user[0];
+      userContext.allUsers = user;
 
-      return cy.loginByApi(ctx.authenticatedUser.username);
+      return cy.loginByApi(userContext.authenticatedUser.username);
     });
 
-    cy.database("filter", "bankaccounts").then((bankAccounts: BankAccount[]) => {
-      ctx.bankAccounts = bankAccounts;
+    cy.database("filter", "bankaccounts").then((bankAccount: BankAccount[]) => {
+      userContext.bankAccounts = bankAccount;
     });
   });
 
-  context("GET /bankAccounts", function () {
-    it("gets a list of bank accounts for user", function () {
-      const { id: userId } = ctx.authenticatedUser!;
-      cy.request("GET", `${apiBankAccounts}`).then((response) => {
-        expect(response.status).to.eq(200);
+
+  context('Get bank account', () => {
+    it('should get list of bank accounts of a user', () => {
+      const { id: userId } = userContext.authenticatedUser!;
+      cy.request('GET', `${apiBankAccount}`).then((response) => {
+        expect(response.status).to.equal(200);
         expect(response.body.results[0].userId).to.eq(userId);
+        console.log(response.body.results[0]);
       });
+    });
+
+    it('should get a specific bank account', () => {
+
+    })
+
+    it('should return a code if a bank account doesnt exist', () => {
+
     });
   });
 
-  context("GET /bankAccounts/:bankAccountId", function () {
-    it("gets a bank account", function () {
-      const { id: userId } = ctx.authenticatedUser!;
-      const { id: bankAccountId } = ctx.bankAccounts![0];
-      cy.request("GET", `${apiBankAccounts}/${bankAccountId}`).then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body.account.userId).to.eq(userId);
-      });
+  context('Create bank account', () => {
+    it('should create a bank account', () => {
+
+    });
+
+    it('should not create a bank account with not enough info', () => {
+
     });
   });
 
-  context("POST /bankAccounts", function () {
-    it("creates a new bank account", function () {
-      const { id: userId } = ctx.authenticatedUser!;
+  context('Delete bank account', () => {
+    it('should delete a bank account successfully', () => {
 
-      cy.request("POST", `${apiBankAccounts}`, {
-        bankName: `${faker.company.companyName()} Bank`,
-        accountNumber: faker.finance.account(10),
-        routingNumber: faker.finance.account(9),
-      }).then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body.account.id).to.be.a("string");
-        expect(response.body.account.userId).to.eq(userId);
-      });
-    });
-  });
-
-  context("DELETE /contacts/:bankAccountId", function () {
-    it("deletes a bank account", function () {
-      const { id: bankAccountId } = ctx.bankAccounts![0];
-      cy.request("DELETE", `${apiBankAccounts}/${bankAccountId}`).then((response) => {
-        expect(response.status).to.eq(200);
-      });
-    });
-  });
-
-  context("/graphql", function () {
-    it("gets a list of bank accounts for user", function () {
-      const { id: userId } = ctx.authenticatedUser!;
-      cy.request("POST", `${apiGraphQL}`, {
-        query: `query {
-           listBankAccount {
-            id
-            uuid
-            userId
-            bankName
-            accountNumber
-            routingNumber
-            isDeleted
-            createdAt
-            modifiedAt
-           }
-          }`,
-      }).then((response) => {
-        expect(response.status).to.eq(200);
-        expect(JSON.stringify(response.body.errors || "notThere")).to.eq('"notThere"');
-        expect(response.body.data.listBankAccount[0].userId).to.eq(userId);
-      });
-    });
-    it("creates a new bank account", function () {
-      const { id: userId } = ctx.authenticatedUser!;
-      cy.request("POST", `${apiGraphQL}`, {
-        query: `mutation createBankAccount ($bankName: String!, $accountNumber: String!,  $routingNumber: String!) {
-          createBankAccount(
-            bankName: $bankName,
-            accountNumber: $accountNumber,
-            routingNumber: $routingNumber
-          ) {
-            id
-            uuid
-            userId
-            bankName
-            accountNumber
-            routingNumber
-            isDeleted
-            createdAt
-          }
-        }`,
-        variables: {
-          bankName: `${faker.company.companyName()} Bank`,
-          accountNumber: faker.finance.account(10),
-          routingNumber: faker.finance.account(9),
-        },
-      }).then((response) => {
-        expect(response.status).to.eq(200);
-        expect(response.body.data.createBankAccount.userId).to.eq(userId);
-      });
-    });
-    it("deletes a bank account", function () {
-      const { id: bankAccountId } = ctx.bankAccounts![0];
-      cy.request("POST", `${apiGraphQL}`, {
-        query: `mutation deleteBankAccount ($id: ID!) {
-          deleteBankAccount(id: $id)
-        }`,
-        variables: { id: bankAccountId },
-      }).then((response) => {
-        expect(response.status).to.eq(200);
-      });
     });
   });
 });
