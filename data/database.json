@@ -78,14 +78,6 @@
   ],
   "contacts": [
     {
-      "id": "efoOTPci1G",
-      "uuid": "c70233b2-771b-464c-aebb-79fdedeedc4d",
-      "userId": "uBmeaz5pX",
-      "contactUserId": "_XblMqbuoP",
-      "createdAt": "2023-08-12T05:43:05.114Z",
-      "modifiedAt": "2024-03-07T10:03:03.641Z"
-    },
-    {
       "id": "rc6g214WL7",
       "uuid": "800ef1c0-e353-446f-bdc9-dbc958eb8d94",
       "userId": "uBmeaz5pX",
@@ -206,7 +198,7 @@
       "bankName": "Waters, King and O'Reilly Bank",
       "accountNumber": "7774132232",
       "routingNumber": "996645387",
-      "isDeleted": true,
+      "isDeleted": false,
       "createdAt": "2023-03-28T21:55:07.857Z",
       "modifiedAt": "2024-03-07T20:50:34.541Z"
     },
